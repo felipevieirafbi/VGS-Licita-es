@@ -108,15 +108,26 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
     try {
       const prompt = `Acesse as ferramentas de Busca do Google em tempo real. Investigue profunda e exaustivamente a empresa identificada como ${lead.companyName} (CNPJ: ${lead.cnpj || 'não informado'}). Identifique nos resultados públicos o seu setor primário, eventuais nomes de sócios ou contatos chave em redes sociais como o LinkedIn, histórico recente em portais de notícias corporativos ou de transparência governamental (para saber se já participaram de licitações). Com o volume de dados recuperado, produza um 'Relatório de Panorama' e formule o texto altamente personalizado de abordagem comercial focado em terceirização de licitações, destacando dores prováveis e benefícios imediatos.`;
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        }
-      });
-      
-      const osintResult = response.text;
+      let osintResult = '';
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+        osintResult = response.text;
+      } catch (searchError: any) {
+        console.warn("Search grounding failed, falling back to standard generation:", searchError);
+        
+        // Fallback without search grounding
+        const fallbackResponse = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: prompt
+        });
+        osintResult = fallbackResponse.text;
+      }
       
       await updateDoc(doc(db, 'leads', leadId), {
         osintData: osintResult,
@@ -134,9 +145,9 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
         timestamp: serverTimestamp()
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('Erro ao realizar pesquisa OSINT');
+      toast.error(`Erro ao realizar pesquisa OSINT: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsSearchingOSINT(false);
     }
