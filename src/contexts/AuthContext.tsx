@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 import { toast } from 'sonner';
@@ -30,6 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
+    // Captura o resultado do redirecionamento para tratar erros
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        toast.success('Login realizado com sucesso!');
+      }
+    }).catch((error) => {
+      console.error("Error getting redirect result", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Domínio não autorizado no Firebase. Verifique as configurações.');
+      } else {
+        toast.error(`Erro ao fazer login: ${error.message}`);
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -65,20 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success('Login realizado com sucesso!');
+      await signInWithRedirect(auth, googleProvider);
+      // O código abaixo não será executado porque a página será redirecionada
     } catch (error: any) {
       console.error("Error signing in with Google", error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('O popup de login foi fechado antes de concluir.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domínio não autorizado. Tente abrir o app em uma nova aba.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        toast.error('Múltiplas requisições de login. Tente novamente.');
-      } else {
-        toast.error(`Erro ao fazer login: ${error.message}`);
-      }
-    } finally {
+      toast.error(`Erro ao iniciar login: ${error.message}`);
       setIsAuthenticating(false);
     }
   };
