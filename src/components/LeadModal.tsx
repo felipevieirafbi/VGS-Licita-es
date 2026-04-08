@@ -112,8 +112,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
         model: 'gemini-3.1-pro-preview',
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }],
-          toolConfig: { includeServerSideToolInvocations: true }
+          tools: [{ googleSearch: {} }]
         }
       });
       
@@ -121,7 +120,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
       
       await updateDoc(doc(db, 'leads', leadId), {
         osintData: osintResult,
-        lastModifiedBy: userData?.uid,
+        lastModifiedBy: userData?.uid || 'system',
         updatedAt: serverTimestamp()
       });
       
@@ -129,7 +128,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
       toast.success('Pesquisa OSINT concluída!');
       
       await addDoc(collection(db, 'audit_logs'), {
-        userId: userData?.uid,
+        userId: userData?.uid || 'system',
         action: `Realizou pesquisa OSINT`,
         entityId: leadId,
         timestamp: serverTimestamp()

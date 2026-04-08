@@ -1,6 +1,6 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, isInIframe } from '../contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
+import { Building2, AlertTriangle, ExternalLink } from 'lucide-react';
 
 export default function Login() {
   const { user, signInWithGoogle, isAuthenticating } = useAuth();
@@ -11,8 +11,41 @@ export default function Login() {
     return <Navigate to={from} replace />;
   }
 
+  const inIframe = isInIframe();
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {inIframe && (
+        <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 px-4 sm:px-0">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Visualização Restrita</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    O login do Google é bloqueado por segurança quando o app está embutido. 
+                    Para acessar, abra o aplicativo em uma nova aba.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => window.open(window.location.href, '_blank')}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-800 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Abrir em Nova Aba
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-16 h-16 bg-blue-900 rounded-xl flex items-center justify-center shadow-lg">

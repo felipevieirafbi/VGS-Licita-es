@@ -1,8 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 import { toast } from 'sonner';
+
+export const isInIframe = () => {
+  try {
+    return window.self !== window.top;
+  } catch (e) {
+    return true;
+  }
+};
 
 interface UserData {
   uid: string;
@@ -77,14 +85,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     if (isAuthenticating) return;
+    
+    if (isInIframe()) {
+      toast.error('O login do Google é bloqueado nesta visualização. Clique no botão amarelo para abrir em uma nova aba.');
+      return;
+    }
+
     setIsAuthenticating(true);
     try {
-      await signInWithRedirect(auth, googleProvider);
-      // O código abaixo não será executado porque a página será redirecionada
-    } catch (error: any) {
-      console.error("Error signing in with Google", error);
-      toast.error(`Erro ao iniciar login: ${error.message}`);
+      await signInWithPopup(auth, googleProvider);
+      toast.success('Login realizado com sucesso!');
       setIsAuthenticating(false);
+    } catch (error: any) {
+      console.error("Popup failed, trying redirect...", error);
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectError: any) {
+        console.error("Redirect failed", redirectError);
+        toast.error(`Erro ao iniciar login: ${redirectError.message}`);
+        setIsAuthenticating(false);
+      }
     }
   };
 
