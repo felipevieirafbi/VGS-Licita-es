@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the CRM system (Admin or Consultor).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "avatar_url": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential client company.",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "source": { "type": "string", "enum": ["Site Orgânico", "Chatbot IA", "Manual/Outbound", "Indicação"] },
+        "status": { "type": "string", "enum": ["Novos Leads", "Análise e OSINT", "Reunião Agendada", "Proposta Enviada", "Negociação", "Fechado", "Lixeira"] },
+        "lastModifiedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "osintData": { "type": "string" }
+      },
+      "required": ["companyName", "source", "status", "createdAt"]
+    },
+    "InteractionLog": {
+      "title": "InteractionLog",
+      "description": "A log of an interaction with a lead.",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "userId": { "type": "string" },
+        "notes": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "interactionType": { "type": "string" }
+      },
+      "required": ["leadId", "userId", "notes", "date"]
+    },
+    "CalendarTask": {
+      "title": "CalendarTask",
+      "description": "A scheduled task or next action for a lead.",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "actionDate": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "description_ai_generated": { "type": "string" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["leadId", "actionDate", "title"]
+    },
+    "AuditTrail": {
+      "title": "AuditTrail",
+      "description": "A log of system actions for auditing.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "entityId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "action", "entityId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Users collection"
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Leads collection"
+    },
+    "/interactions/{interactionId}": {
+      "schema": { "$ref": "#/entities/InteractionLog" },
+      "description": "Interactions collection"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/CalendarTask" },
+      "description": "Calendar tasks collection"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditTrail" },
+      "description": "Audit logs collection"
+    }
+  }
+}
