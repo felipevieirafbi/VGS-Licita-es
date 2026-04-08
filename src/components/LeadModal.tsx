@@ -53,7 +53,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
       const prompt = `Baseado nesta anotação de CRM: "${newNote}", sugira a próxima ação a ser tomada com este cliente e uma data sugerida (em dias a partir de hoje). Responda em JSON com as chaves "title" (string curta) e "daysToAdd" (number).`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview-05-20',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -105,39 +105,62 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
 
   const handleOSINT = async () => {
     setIsSearchingOSINT(true);
+    const prompt = `Investigue profunda e exaustivamente a empresa identificada como ${lead.companyName} (CNPJ: ${lead.cnpj || 'nao informado'}). Identifique nos resultados publicos o seu setor primario, eventuais nomes de socios ou contatos chave em redes sociais como o LinkedIn, historico recente em portais de noticias corporativos ou de transparencia governamental (para saber se ja participaram de licitacoes). Com o volume de dados recuperado, produca um 'Relatorio de Panorama' e formule o texto altamente personalizado de abordagem comercial focado em terceirizacao de licitacoes, destacando dores provaveis e beneficios imediatos.`;
+
     try {
-      const prompt = `Acesse as ferramentas de Busca do Google em tempo real. Investigue profunda e exaustivamente a empresa identificada como ${lead.companyName} (CNPJ: ${lead.cnpj || 'não informado'}). Identifique nos resultados públicos o seu setor primário, eventuais nomes de sócios ou contatos chave em redes sociais como o LinkedIn, histórico recente em portais de notícias corporativos ou de transparência governamental (para saber se já participaram de licitações). Com o volume de dados recuperado, produza um 'Relatório de Panorama' e formule o texto altamente personalizado de abordagem comercial focado em terceirização de licitações, destacando dores prováveis e benefícios imediatos.`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-          toolConfig: { includeServerSideToolInvocations: true }
-        }
-      });
-      
+      let response;
+
+      // Try with Google Search grounding first
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-preview-05-20',
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+          }
+        });
+      } catch (groundingError: any) {
+        console.warn('Google Search grounding failed, falling back to standard model:', groundingError.message);
+        // Fallback: use same model without grounding
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-preview-05-20',
+          contents: prompt,
+        });
+      }
+
       const osintResult = response.text;
-      
+
+      if (!osintResult) {
+        toast.error('A pesquisa nao retornou resultados. Tente novamente.');
+        return;
+      }
+
       await updateDoc(doc(db, 'leads', leadId), {
         osintData: osintResult,
         lastModifiedBy: userData?.uid,
         updatedAt: serverTimestamp()
       });
-      
-      setLead(prev => ({ ...prev, osintData: osintResult }));
-      toast.success('Pesquisa OSINT concluída!');
-      
+
+      setLead((prev: any) => ({ ...prev, osintData: osintResult }));
+      toast.success('Pesquisa OSINT concluida!');
+
       await addDoc(collection(db, 'audit_logs'), {
         userId: userData?.uid,
         action: `Realizou pesquisa OSINT`,
         entityId: leadId,
         timestamp: serverTimestamp()
       });
-      
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao realizar pesquisa OSINT');
+
+    } catch (error: any) {
+      console.error('OSINT Error:', error);
+      const msg = error?.message || 'Erro desconhecido';
+      if (msg.includes('API key') || msg.includes('apiKey')) {
+        toast.error('Chave da API Gemini nao configurada. Verifique a variavel GEMINI_API_KEY.');
+      } else if (msg.includes('404') || msg.includes('not found')) {
+        toast.error('Modelo de IA nao encontrado. Verifique o nome do modelo configurado.');
+      } else {
+        toast.error(`Erro na pesquisa OSINT: ${msg}`);
+      }
     } finally {
       setIsSearchingOSINT(false);
     }
