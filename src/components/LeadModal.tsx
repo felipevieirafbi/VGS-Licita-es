@@ -53,7 +53,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
       const prompt = `Baseado nesta anotação de CRM: "${newNote}", sugira a próxima ação a ser tomada com este cliente e uma data sugerida (em dias a partir de hoje). Responda em JSON com as chaves "title" (string curta) e "daysToAdd" (number).`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-05-20',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -113,7 +113,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
       // Try with Google Search grounding first
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-3-flash-preview',
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }],
@@ -123,7 +123,7 @@ export default function LeadModal({ leadId, onClose }: { leadId: string, onClose
         console.warn('Google Search grounding failed, falling back to standard model:', groundingError.message);
         // Fallback: use same model without grounding
         response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-3-flash-preview',
           contents: prompt,
         });
       }

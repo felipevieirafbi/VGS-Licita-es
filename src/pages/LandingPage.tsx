@@ -215,7 +215,7 @@ function ChatbotWidget({ onClose, cookieAccepted }: { onClose: () => void, cooki
         const prompt = `O usuário disse: "${userMsg}". Responda de forma cordial, confirme que a VGS pode ajudar e peça os dados de contato (Nome, E-mail, Telefone, Empresa e CNPJ) para agendar uma reunião com um especialista humano. Seja persuasivo e breve.`;
         
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-3-flash-preview',
           contents: prompt,
         });
         
@@ -246,7 +246,7 @@ function ChatbotWidget({ onClose, cookieAccepted }: { onClose: () => void, cooki
       } else {
         // Normal chat
         const chat = ai.chats.create({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-3-flash-preview',
           config: {
             systemInstruction: 'Você é um SDR (Sales Development Representative) da VGS Licitações. Seu objetivo é qualificar empresas que querem vender para o governo. Seja cordial, profissional e focado em mostrar o valor de terceirizar o departamento de licitações. Responda de forma concisa.'
           }
