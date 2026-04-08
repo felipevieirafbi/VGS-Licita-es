@@ -1,11 +1,25 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
+import { Building2, ExternalLink } from 'lucide-react';
+
+function isInIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
 
 export default function Login() {
   const { user, signInWithGoogle, isAuthenticating } = useAuth();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/kanban";
+  const [inIframe, setInIframe] = useState(false);
+
+  useEffect(() => {
+    setInIframe(isInIframe());
+  }, []);
 
   if (user) {
     return <Navigate to={from} replace />;
@@ -20,15 +34,33 @@ export default function Login() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          VGS Licitações
+          VGS Licitacoes
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Área Restrita para Consultores e Administradores
+          Area Restrita para Consultores e Administradores
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+          {inIframe && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 font-medium mb-2">
+                Login com Google requer abrir o app em uma nova aba.
+              </p>
+              <p className="text-xs text-amber-700 mb-3">
+                O preview embutido bloqueia a autenticacao do Google por restricoes de seguranca do navegador.
+              </p>
+              <button
+                onClick={() => window.open(window.location.href, '_blank')}
+                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-sm font-medium transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Abrir em Nova Aba
+              </button>
+            </div>
+          )}
+
           <button
             onClick={signInWithGoogle}
             disabled={isAuthenticating}
