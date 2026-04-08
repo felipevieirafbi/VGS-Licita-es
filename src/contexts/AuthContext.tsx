@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 import { toast } from 'sonner';
@@ -30,13 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
+    // Handle redirect result from Google Sign-In
+    getRedirectResult(auth).catch((error) => {
+      console.error("Error from redirect sign-in", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Domínio não autorizado para login. Verifique as configurações do Firebase.');
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         // Fetch or create user document
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (userDoc.exists()) {
           setUserData(userDoc.data() as UserData);
         } else {
@@ -65,20 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success('Login realizado com sucesso!');
+      await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
       console.error("Error signing in with Google", error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('O popup de login foi fechado antes de concluir.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domínio não autorizado. Tente abrir o app em uma nova aba.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        toast.error('Múltiplas requisições de login. Tente novamente.');
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Domínio não autorizado. Verifique as configurações do Firebase.');
       } else {
-        toast.error(`Erro ao fazer login: ${error.message}`);
+        toast.error(`Erro ao iniciar login: ${error.message}`);
       }
-    } finally {
       setIsAuthenticating(false);
     }
   };
